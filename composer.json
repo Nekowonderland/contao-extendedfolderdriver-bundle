@@ -1,0 +1,42 @@
+{
+  "name": "nekowonderland/contao-extendedfiledriver-bundle",
+  "description": "",
+  "keywords": [],
+  "type": "contao-bundle",
+  "homepage": "",
+  "license": "LGPL-3.0+",
+  "authors": [
+    {
+      "name": "Stefan Heimes",
+      "email": "stefan_heimes@hotmail.com",
+      "homepage": "",
+      "role": "Developer"
+    }
+  ],
+  "support": {
+    "email": "stefan_heimes@hotmail.com",
+    "issues": "",
+    "wiki": "",
+    "irc": "",
+    "source": ""
+  },
+  "require": {
+    "php": "^7.2",
+    "contao/core-bundle": "^4.4.8"
+  },
+  "require-dev": {
+    "phpcq/all-tasks": "~1.2",
+    "contao/manager-bundle": "~4.4"
+  },
+  "autoload": {
+    "psr-4": {
+      "MenAtWork\\SyncCto\\": "src"
+    },
+    "classmap": [
+      "classes/"
+    ]
+  },
+  "extra": {
+    "contao-manager-plugin": "Nekowonderland\\ExtendedFileDriver\\ContaoManager\\Plugin"
+  }
+}
