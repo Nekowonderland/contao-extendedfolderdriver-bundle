@@ -30,11 +30,8 @@
   },
   "autoload": {
     "psr-4": {
-      "MenAtWork\\SyncCto\\": "src"
-    },
-    "classmap": [
-      "classes/"
-    ]
+      "Nekowonderland\\ExtendedFileDriver\\": "src"
+    }
   },
   "extra": {
     "contao-manager-plugin": "Nekowonderland\\ExtendedFileDriver\\ContaoManager\\Plugin"
