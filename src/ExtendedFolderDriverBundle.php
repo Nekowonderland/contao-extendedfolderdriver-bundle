@@ -1,8 +1,8 @@
 <?php
 
-namespace Nekowonderland\ExtendedFileDriver;
+namespace Nekowonderland\ExtendedFolderDriver;
 
-use Nekowonderland\ExtendedFileDriver\DependencyInjection\ExtendedFileDriverExtension;
+use Nekowonderland\ExtendedFolderDriver\DependencyInjection\ExtendedFolderDriverExtension;
 use Symfony\Component\Console\Application;
 use Symfony\Component\HttpKernel\Bundle\Bundle;
 
@@ -11,14 +11,14 @@ use Symfony\Component\HttpKernel\Bundle\Bundle;
  *
  * @package MenAtWork\SyncCtoBundle
  */
-class ExtendedFileDriverBundle extends Bundle
+class ExtendedFolderDriverBundle extends Bundle
 {
     /**
      * {@inheritdoc}
      */
     public function getContainerExtension()
     {
-        return new ExtendedFileDriverExtension();
+        return new ExtendedFolderDriverExtension();
     }
 
     /**

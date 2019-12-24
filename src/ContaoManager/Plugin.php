@@ -20,7 +20,7 @@
  * @filesource
  */
 
-namespace Nekowonderland\ExtendedFileDriver\ContaoManager;
+namespace Nekowonderland\ExtendedFolderDriver\ContaoManager;
 
 use Contao\CoreBundle\ContaoCoreBundle;
 use Contao\ManagerBundle\ContaoManagerBundle;
@@ -28,7 +28,7 @@ use Contao\ManagerPlugin\Bundle\BundlePluginInterface;
 use Contao\ManagerPlugin\Bundle\Config\BundleConfig;
 use Contao\ManagerPlugin\Bundle\Parser\ParserInterface;
 use Contao\ManagerPlugin\Routing\RoutingPluginInterface;
-use Nekowonderland\ExtendedFileDriver\ExtendedFileDriverBundle;
+use Nekowonderland\ExtendedFolderDriver\ExtendedFolderDriverBundle;
 use Symfony\Component\Config\Loader\LoaderResolverInterface;
 use Symfony\Component\HttpKernel\KernelInterface;
 
@@ -43,7 +43,7 @@ class Plugin implements BundlePluginInterface, RoutingPluginInterface
     public function getBundles(ParserInterface $parser)
     {
         return [
-            BundleConfig::create(ExtendedFileDriverBundle::class)
+            BundleConfig::create(ExtendedFolderDriverBundle::class)
                         ->setLoadAfter(
                             [
                                 ContaoCoreBundle::class,

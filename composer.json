@@ -1,5 +1,5 @@
 {
-  "name": "nekowonderland/contao-extendedfiledriver-bundle",
+  "name": "nekowonderland/contao-extendedfolderdriver-bundle",
   "description": "",
   "keywords": [],
   "type": "contao-bundle",
@@ -30,10 +30,10 @@
   },
   "autoload": {
     "psr-4": {
-      "Nekowonderland\\ExtendedFileDriver\\": "src"
+      "Nekowonderland\\ExtendedFolderDriver\\": "src"
     }
   },
   "extra": {
-    "contao-manager-plugin": "Nekowonderland\\ExtendedFileDriver\\ContaoManager\\Plugin"
+    "contao-manager-plugin": "Nekowonderland\\ExtendedFolderDriver\\ContaoManager\\Plugin"
   }
 }

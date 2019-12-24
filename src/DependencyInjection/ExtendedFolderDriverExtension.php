@@ -1,6 +1,6 @@
 <?php
 
-namespace Nekowonderland\ExtendedFileDriver\DependencyInjection;
+namespace Nekowonderland\ExtendedFolderDriver\DependencyInjection;
 
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -10,7 +10,7 @@ use Symfony\Component\DependencyInjection\Loader\YamlFileLoader;
 /**
  * Class MultiColumnWizardExtension
  */
-class ExtendedFileDriverExtension extends Extension
+class ExtendedFolderDriverExtension extends Extension
 {
     /**
      * The config files.
@@ -27,7 +27,7 @@ class ExtendedFileDriverExtension extends Extension
      */
     public function getAlias()
     {
-        return 'extendedfiledriver-bundle';
+        return 'extendedfolderdriver-bundle';
     }
 
     /**
