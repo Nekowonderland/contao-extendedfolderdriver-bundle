@@ -14,10 +14,11 @@ class LoadDataContainerListener
      */
     public function updateFolderSettings($name)
     {
-        if ('tl_files' !== $name) {
+        if ('BE' !== TL_MODE || 'tl_files' !== $name) {
             return;
         }
 
+        $GLOBALS['TL_JAVASCRIPT'][]                               = 'bundles/extendedfolderdriver/js/handler.js';
         $GLOBALS['TL_DCA']['tl_files']['config']['dataContainer'] = 'ExtendedFolder';
     }
 }
