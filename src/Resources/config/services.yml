@@ -1,2 +1,7 @@
 services:
   Nekowonderland\ExtendedFolderDriver\Controller\Image:
+    public: true
+    arguments:
+      - '@logger'
+      - '@contao.framework'
+      - '@contao.image.image_factory'
