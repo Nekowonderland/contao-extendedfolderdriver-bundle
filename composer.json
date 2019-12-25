@@ -31,7 +31,10 @@
   "autoload": {
     "psr-4": {
       "Nekowonderland\\ExtendedFolderDriver\\": "src"
-    }
+    },
+    "classmap": [
+      "driver/"
+    ]
   },
   "extra": {
     "contao-manager-plugin": "Nekowonderland\\ExtendedFolderDriver\\ContaoManager\\Plugin"

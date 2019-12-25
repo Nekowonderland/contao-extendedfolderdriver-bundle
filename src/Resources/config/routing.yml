@@ -1,0 +1,6 @@
+nekowonderland.extendedfolder.image_contao:
+  path:     /contao/extendedfolder/image
+  defaults:
+    _controller: Nekowonderland\ExtendedFolderDriver\Controller\Image:generateContaoImage
+    _scope: backend
+    _token_check: false
