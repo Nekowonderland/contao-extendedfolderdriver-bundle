@@ -16,13 +16,6 @@ use Symfony\Component\HttpFoundation\Session\Session;
  */
 class DC_ExtendedFolder extends \DC_Folder
 {
-
-    protected function getPathFileRoute($file)
-    {
-        \System::getContainer()->get('router')
-    }
-
-
     /**
      * @inheritDoc
      */
