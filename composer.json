@@ -1,7 +1,10 @@
 {
   "name": "nekowonderland/contao-extendedfolderdriver-bundle",
   "description": "",
-  "keywords": [],
+  "keywords": [
+    "driver",
+    "folder"
+  ],
   "type": "contao-bundle",
   "homepage": "",
   "license": "LGPL-3.0+",
