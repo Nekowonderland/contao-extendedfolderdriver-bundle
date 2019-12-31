@@ -6,22 +6,20 @@
     "folder"
   ],
   "type": "contao-bundle",
-  "homepage": "",
-  "license": "LGPL-3.0+",
+  "homepage": "https://github.com/Nekowonderland/contao-extendedfolderdriver-bundle",
+  "license": "LGPL-3.0-or-later",
   "authors": [
     {
       "name": "Stefan Heimes",
       "email": "stefan_heimes@hotmail.com",
-      "homepage": "",
       "role": "Developer"
     }
   ],
   "support": {
     "email": "stefan_heimes@hotmail.com",
-    "issues": "",
-    "wiki": "",
-    "irc": "",
-    "source": ""
+    "issues": "https://github.com/Nekowonderland/contao-extendedfolderdriver-bundle/issues",
+    "wiki": "https://github.com/Nekowonderland/contao-extendedfolderdriver-bundle/wiki",
+    "source": "https://github.com/Nekowonderland/contao-extendedfolderdriver-bundle"
   },
   "require": {
     "php": "^7.2",

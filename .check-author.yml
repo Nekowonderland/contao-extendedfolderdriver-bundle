@@ -1,0 +1,9 @@
+ignore:
+
+exclude:
+  src/Resources/contao/languages
+
+mapping:
+
+copy-left:
+ 
