@@ -5,3 +5,11 @@ services:
       - '@logger'
       - '@contao.framework'
       - '@contao.image.image_factory'
+
+  Nekowonderland\ExtendedFolderDriver\Command\CreateImages:
+    arguments:
+      - '@logger'
+      - '@contao.framework'
+      - '@contao.image.image_factory'
+    tags:
+      - { name: 'console.command', command: 'contao:nw-generate-images' }
