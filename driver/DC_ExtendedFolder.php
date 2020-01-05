@@ -1,13 +1,27 @@
 <?php
 
+/**
+ * This file is part of ExtendedFolderDriver
+ *
+ * (c) 2019-2020 Stefan Heimes
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ *
+ * This project is provided in good faith and hope to be usable by anyone.
+ *
+ * @package   ExtendedFolderDriver
+ * @author    Stefan Heimes <stefan_heimes@hotmail.com>
+ * @copyright 2019-2020 Stefan Heimes
+ * @license   https://github.com/Nekowonderland/contao-extendedfolderdriver-bundle/blob/master/LICENSE LGPL-3.0-or-later
+ */
+
 namespace Contao;
 
-use Contao\Config;
 use Contao\Image\ResizeConfiguration;
 use Imagine\Exception\RuntimeException;
 use Imagine\Gd\Imagine;
 use Symfony\Component\HttpFoundation\Session\Attribute\AttributeBagInterface;
-use Symfony\Component\HttpFoundation\Session\Session;
 
 /**
  * Class DC_ExtendedFolder
@@ -16,6 +30,20 @@ use Symfony\Component\HttpFoundation\Session\Session;
  */
 class DC_ExtendedFolder extends \DC_Folder
 {
+    /**
+     * @return string
+     */
+    private function getLoadingHtml()
+    {
+        return <<<HTML
+<div class="nw-ll-group">
+    <i class="nw-ll nw-ll-square"></i>
+    <i class="nw-ll nw-ll-square"></i>
+    <i class="nw-ll nw-ll-square"></i>
+</div>
+HTML;
+    }
+
     /**
      * @inheritDoc
      */
@@ -306,5 +334,4 @@ class DC_ExtendedFolder extends \DC_Folder
 
         return $return;
     }
-
 }

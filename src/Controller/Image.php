@@ -1,4 +1,22 @@
-<?php declare(strict_types=1);
+<?php
+
+/**
+ * This file is part of ExtendedFolderDriver
+ *
+ * (c) 2019-2020 Stefan Heimes
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ *
+ * This project is provided in good faith and hope to be usable by anyone.
+ *
+ * @package   ExtendedFolderDriver
+ * @author    Stefan Heimes <stefan_heimes@hotmail.com>
+ * @copyright 2019-2020 Stefan Heimes
+ * @license   https://github.com/Nekowonderland/contao-extendedfolderdriver-bundle/blob/master/LICENSE LGPL-3.0-or-later
+ */
+
+declare(strict_types=1);
 
 namespace Nekowonderland\ExtendedFolderDriver\Controller;
 
@@ -21,33 +39,41 @@ use Symfony\Component\HttpFoundation\Response;
 class Image
 {
     /**
+     * The logger.
+     *
      * @var LoggerInterface
      */
     private $logger;
 
     /**
+     * Contao image factory.
+     *
      * @var ImageFactory
      */
     private $imageFactory;
 
     /**
+     * The valid file tpyes as list.
+     *
      * @var array
      */
     private $arrValidFileTypes;
 
     /**
+     * The filemounts.
+     *
      * @var array
      */
     private $arrFilemounts;
 
     /**
-     * Client constructor.
+     * Constructor.
      *
-     * @param LoggerInterface $logger Logger.
+     * @param LoggerInterface $logger       Logger.
      *
-     * @param ContaoFramework $framework
+     * @param ContaoFramework $framework    Contao.
      *
-     * @param ImageFactory    $imageFactory
+     * @param ImageFactory    $imageFactory Image factory.
      */
     public function __construct(
         LoggerInterface $logger,
@@ -62,18 +88,21 @@ class Image
     }
 
     /**
-     * @param ContaoFramework $framework
+     * Start contao framework.
+     *
+     * @param ContaoFramework $framework Contao.
      *
      * @return void
+     *
+     * @SuppressWarnings(PHPMD.Superglobals)
      */
-    private function initContao(
-        ContaoFramework $framework
-    ): void {
+    private function initContao(ContaoFramework $framework): void
+    {
         if (!$framework->isInitialized()) {
             $framework->initialize();
         }
 
-        // Preset the language.
+        // Sometimes the language is missing so we will preset is to en.
         if (empty($GLOBALS['TL_LANGUAGE'])) {
             $GLOBALS['TL_LANGUAGE'] = 'en';
         }
@@ -84,10 +113,13 @@ class Image
     /**
      * This code is a copy of the DC_Folder driver.
      * I want to check all things like contao, because I didn't want to build a open door to all files.
+     *
+     * @return void
+     *
+     * @SuppressWarnings(PHPMD.Superglobals)
      */
     public function initRightManagement(): void
     {
-        // Check for valid file types
         if ($GLOBALS['TL_DCA']['tl_files']['config']['validFileTypes']) {
             $this->arrValidFileTypes = \StringUtil::trimsplit(
                 ',',
@@ -95,9 +127,9 @@ class Image
             );
         }
 
-        // Get all filemounts (root folders)
         if (\is_array($GLOBALS['TL_DCA']['tl_files']['list']['sorting']['root'])) {
-            $this->arrFilemounts = $this->eliminateNestedPaths($GLOBALS['TL_DCA']['tl_files']['list']['sorting']['root']);
+            $this->arrFilemounts = $this
+                ->eliminateNestedPaths($GLOBALS['TL_DCA']['tl_files']['list']['sorting']['root']);
         }
     }
 
@@ -106,20 +138,18 @@ class Image
      *
      * Take an array of file paths and eliminate the nested ones
      *
-     * @param array $arrPaths The array of file paths
+     * @param array $arrPaths The array of file paths.
      *
      * @return array The file paths array without the nested paths
      */
     protected function eliminateNestedPaths(array $arrPaths): array
     {
         $arrPaths = array_filter($arrPaths);
-
         if (empty($arrPaths) || !\is_array($arrPaths)) {
-            return array();
+            return [];
         }
 
-        $nested = array();
-
+        $nested = [];
         foreach ($arrPaths as $path) {
             $nested = array_merge($nested, preg_grep('/^' . preg_quote($path, '/') . '\/.+/', $arrPaths));
         }
@@ -128,13 +158,19 @@ class Image
     }
 
     /**
-     * @param string              $state
-     * @param string              $msg
-     * @param string              $src
-     * @param ResizeConfiguration $resizeConfiguration
+     * Generate a default response.
      *
-     * @return JsonResponse
-     * @throws \Exception
+     * @param string              $state               The state like ok or error.
+     *
+     * @param string              $msg                 A message for the response.
+     *
+     * @param string              $src                 The src path of the file to use.
+     *
+     * @param ResizeConfiguration $resizeConfiguration The configuration for the contao image.
+     *
+     * @return JsonResponse The response.
+     *
+     * @throws \Exception If something went wrong to open the file.
      */
     private function getResponse(
         string $state,
@@ -160,13 +196,14 @@ class Image
     }
 
     /**
-     * @param Request $request
+     * Get all parameters from the request and build the resize config for the image class from contao.
      *
-     * @return ResizeConfiguration
+     * @param Request $request The current request.
+     *
+     * @return ResizeConfiguration The configuration.
      */
-    private function getResizeObjectFromRequest(
-        Request $request
-    ): ResizeConfiguration {
+    private function getResizeObjectFromRequest(Request $request): ResizeConfiguration
+    {
         $resizeContainer = new ResizeConfiguration();
         $mode            = $request->get('mode');
         $zoom            = $request->get('zoom');
@@ -190,10 +227,11 @@ class Image
     /**
      * Some parts are from the dc driver others are from the sendFileToBrowser function.
      *
-     * @param Request $request
+     * @param Request $request The current request.
      *
-     * @return \Contao\File
-     * @throws \Exception
+     * @return \Contao\File The file which was requested.
+     *
+     * @throws ResponseException Thrown if something went wrong with the checks. Contains the response.
      */
     public function getFileFromRequest(Request $request): File
     {
@@ -206,8 +244,25 @@ class Image
         }
 
         $src = base64_decode($src);
+        $this->checkPath($src);
 
-        // Make sure there are no attempts to hack the file system
+        $file = new File($src);
+        $this->checkFile($file);
+
+        return $file;
+    }
+
+    /**
+     * Check the basic path.
+     *
+     * @param string $src The path of the file.
+     *
+     * @return void
+     *
+     * @throws ResponseException Thrown if something went wrong with the checks. Contains the response.
+     */
+    private function checkPath(string $src): void
+    {
         if (preg_match('@^\.+@', $src) || preg_match('@\.+/@', $src) || preg_match('@(://)+@', $src)) {
             throw new ResponseException($this->getResponse(
                 'error',
@@ -215,7 +270,6 @@ class Image
             ));
         }
 
-        // Limit downloads to the files directory
         if (!preg_match('@^' . preg_quote(\Config::get('uploadPath'), '@') . '@i', $src)) {
             throw new ResponseException($this->getResponse(
                 'error',
@@ -223,16 +277,25 @@ class Image
             ));
         }
 
-        // Check whether the file exists
         if (!file_exists(TL_ROOT . '/' . $src)) {
             throw new ResponseException($this->getResponse(
                 'error',
                 'File not found'
             ));
         }
+    }
 
-        $file = new File($src);
-
+    /**
+     * Check the file.
+     *
+     * @param \Contao\File $file The file.
+     *
+     * @return void
+     *
+     * @throws ResponseException Thrown if something went wrong with the checks. Contains the response.
+     */
+    private function checkFile(File $file): void
+    {
         if (!empty($this->arrValidFileTypes) && !\in_array($file->extension, $this->arrValidFileTypes)) {
             throw new ResponseException($this->getResponse(
                 'error',
@@ -253,20 +316,17 @@ class Image
                 'Not an image.'
             ));
         }
-
-        // ToDo: Check file mounts from the user.
-
-        return $file;
     }
 
     /**
-     * @param Request $request
+     * Generate the image and send a response with all the data and the picture data.
      *
-     * @return Response
+     * @param Request $request The current request.
+     *
+     * @return Response The response.
      */
-    public function generateContaoImage(
-        Request $request
-    ): Response {
+    public function generateContaoImage(Request $request): Response
+    {
         session_write_close();
 
         try {
