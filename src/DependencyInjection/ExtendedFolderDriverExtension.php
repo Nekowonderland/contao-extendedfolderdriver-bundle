@@ -36,7 +36,7 @@ class ExtendedFolderDriverExtension extends Extension
      * @var array
      */
     private $files = [
-        'listener.yml',
+//        'listener.yml',
         'services.yml',
     ];
 
