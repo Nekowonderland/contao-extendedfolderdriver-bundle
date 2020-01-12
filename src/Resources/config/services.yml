@@ -13,3 +13,22 @@ services:
       - '@contao.image.image_factory'
     tags:
       - { name: 'console.command', command: 'contao:nw-generate-images' }
+
+  Nekowonderland\ExtendedFolderDriver\Resizer\ImageFactory:
+    public: true
+    arguments:
+      - "@Nekowonderland\\ExtendedFolderDriver\\Resizer\\Resizer"
+      - "@contao.image.imagine"
+      - "@contao.image.imagine_svg"
+      - "@filesystem"
+      - "@contao.framework"
+      - "%contao.image.bypass_cache%"
+      - "%contao.image.imagine_options%"
+      - "%contao.image.valid_extensions%"
+
+  Nekowonderland\ExtendedFolderDriver\Resizer\Resizer:
+    public: true
+    arguments:
+      - "%contao.image.target_dir%"
+      - "@contao.image.resize_calculator"
+      - "@filesystem"
