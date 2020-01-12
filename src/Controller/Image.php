@@ -316,6 +316,15 @@ class Image
                 'Not an image.'
             ));
         }
+
+        $maxHeight = $GLOBALS['TL_CONFIG']['nwAjaxMaxImgHeight'];
+        $maxWidth  = $GLOBALS['TL_CONFIG']['nwAjaxMaxImgWidth'];
+        if (!empty($maxHeight) && !empty($maxWidth) && ($file->height > $maxHeight || $file->width > $maxWidth)) {
+            throw new ResponseException($this->getResponse(
+                'error',
+                sprintf('Out of range. Max supported width %s and height %s.', $maxWidth, $maxHeight)
+            ));
+        }
     }
 
     /**

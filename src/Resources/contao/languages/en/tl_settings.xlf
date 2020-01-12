@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xliff version="1.1">
+  <file datatype="php" original="src/Resources/contao/languages/en/tl_settings.php" source-language="en">
+    <body>
+      <trans-unit id="tl_settings.nwAjaxMaxImgWidth.0">
+        <source>Maximum AJAX image width</source>
+      </trans-unit>
+      <trans-unit id="tl_settings.nwAjaxMaxImgWidth.1">
+        <source>Here you can enter the maximum image width that the AJAX library shall try to handle.</source>
+      </trans-unit>
+      <trans-unit id="tl_settings.nwAjaxMaxImgHeight.0">
+        <source>Maximum AJAX image height</source>
+      </trans-unit>
+      <trans-unit id="tl_settings.nwAjaxMaxImgHeight.1">
+        <source>Here you can enter the maximum image height that the AJAX library shall try to handle.</source>
+      </trans-unit>
+    </body>
+  </file>
+</xliff>
