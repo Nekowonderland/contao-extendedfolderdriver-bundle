@@ -396,7 +396,7 @@ class CreateImages extends Command
         $config       = $this->getResizeObjectFromInput($input);
         $scanPath     = $this->getPathFromInput($input);
         $files        = $this->getFileListForPath($scanPath, $allowedFiles);
-        $count        = count($files);
+        $count        = (is_array($files)) ? count($files) : iterator_count($files);
         $progressBar  = new ProgressBar($output, $count);
 
         /** @var SplFileInfo $file */
