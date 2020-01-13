@@ -160,6 +160,8 @@ class ExtendedFileDriverHandler {
                         element.setAttribute('width', element.dataset.efdWidth);
                         element.setAttribute('height', element.dataset.efdHeight);
                         element.style.display = "block";
+                    } else {
+                        self.setErrorElement(element, response.message);
                     }
                 } else {
                     console.error(xhttp.statusText);

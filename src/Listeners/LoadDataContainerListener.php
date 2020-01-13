@@ -42,7 +42,7 @@ class LoadDataContainerListener
             return;
         }
 
-        $GLOBALS['TL_JAVASCRIPT'][]                               = 'bundles/extendedfolderdriver/js/handler.js';
+        $GLOBALS['TL_MOOTOOLS'][]                                 = '<script defer src="bundles/extendedfolderdriver/js/handler.js"></script>';
         $GLOBALS['TL_DCA']['tl_files']['config']['dataContainer'] = 'ExtendedFolder';
     }
 }
