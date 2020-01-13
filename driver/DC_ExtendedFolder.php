@@ -45,6 +45,50 @@ HTML;
     }
 
     /**
+     *
+     * @param string   $path   Path to the source file.
+     *
+     * @param int      $width  Width of the new picture.
+     *
+     * @param int      $height Height of the new picture.
+     *
+     * @param string   $mode   Mode of the
+     *
+     * @param null|int $zoom   Null if not used or a integer between 0 and 100
+     *
+     * @return string The image with all data.
+     */
+    private function getAjaxImageTag(
+        $path,
+        $width = 400,
+        $height = 50,
+        $mode = ResizeConfiguration::MODE_BOX,
+        $zoom = null
+    ) {
+        $attributes = [
+            'class="%s"'           => 'preview-image efd-ajax-image',
+            'data-efd-src="%s"'    => base64_encode(rawurldecode($path)),
+            'data-efd-width="%s"'  => $width,
+            'data-efd-height="%s"' => $height,
+            'data-efd-mode="%s"'   => $mode,
+            'data-efg-broken="%s"' => ($GLOBALS['TL_DCA']['tl_settings']['fields']['nwHiddenDmgImage']) ? 1 : 0
+        ];
+
+        if ($zoom != null) {
+            $attributes['data-efd-zoom="%s"'] = $zoom;
+        }
+
+        return \Image::getHtml(
+            'bundles/extendedfolderdriver/image/loading.gif',
+            '',
+            vsprintf(
+                implode(' ', array_keys($attributes)),
+                array_values($attributes)
+            )
+        );
+    }
+
+    /**
      * @inheritDoc
      */
     protected function generateTree(
@@ -265,37 +309,29 @@ HTML;
                         if ($objFile->height !== null && $objFile->height <= 50 && $objFile->width !== null && $objFile->width <= 400) {
                             $thumbnail .= '<br><img src="' . $objFile->dataUri . '" width="' . $objFile->width . '" height="' . $objFile->height . '" alt="" class="preview-image">';
                         } else {
-                            $thumbnail .= '<br>' . \Image::getHtml(
-                                    'bundles/extendedfolderdriver/image/loading.gif',
-                                    '',
-                                    sprintf(
-                                        'class="preview-image efd-ajax-image" data-efd-src="%s" data-efd-width="%s" data-efd-height="%s" data-efd-mode="%s"',
-                                        base64_encode(rawurldecode($currentEncoded)),
-                                        400,
-                                        50,
-                                        ResizeConfiguration::MODE_BOX
-                                    )
+                            $thumbnail .= '<br>' . $this->getAjaxImageTag(
+                                    $currentEncoded,
+                                    400,
+                                    50,
+                                    ResizeConfiguration::MODE_BOX
                                 );
                         }
 
-                        $importantPart = \System::getContainer()->get('contao.image.image_factory')->create(TL_ROOT . '/' . rawurldecode($currentEncoded))->getImportantPart();
+                        $importantPart = \System::getContainer()
+                                                ->get('contao.image.image_factory')
+                                                ->create(TL_ROOT . '/' . rawurldecode($currentEncoded))
+                                                ->getImportantPart();
 
                         if ($importantPart->getPosition()->getX() > 0
                             || $importantPart->getPosition()->getY() > 0
                             || $importantPart->getSize()->getWidth() < $objFile->width
                             || $importantPart->getSize()->getHeight() < $objFile->height) {
-                            $thumbnail .= ' '
-                                . \Image::getHtml(
-                                    'bundles/extendedfolderdriver/image/loading.gif',
-                                    '',
-                                    sprintf(
-                                        'class="preview-important efd-ajax-image" data-efd-src="%s" data-efd-width="%s" data-efd-height="%s" data-efd-mode="%s" data-rfg-zoom="%s"',
-                                        base64_encode(rawurldecode($currentEncoded)),
-                                        320,
-                                        40,
-                                        ResizeConfiguration::MODE_BOX,
-                                        100
-                                    )
+                            $thumbnail .= ' ' . $this->getAjaxImageTag(
+                                    $currentEncoded,
+                                    320,
+                                    40,
+                                    ResizeConfiguration::MODE_BOX,
+                                    100
                                 );
                         }
                     } catch (RuntimeException $e) {

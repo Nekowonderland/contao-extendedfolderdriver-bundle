@@ -14,6 +14,12 @@
       <trans-unit id="tl_settings.nwAjaxMaxImgHeight.1">
         <source>Here you can enter the maximum image height that the AJAX library shall try to handle.</source>
       </trans-unit>
+       <trans-unit id="tl_settings.nwHiddenDmgImage.0">
+         <source>Hidden Broken Image for AJAX</source>
+       </trans-unit>
+       <trans-unit id="tl_settings.nwHiddenDmgImage.1">
+         <source>If active the "Broken Image" won't be show.</source>
+       </trans-unit>
     </body>
   </file>
 </xliff>

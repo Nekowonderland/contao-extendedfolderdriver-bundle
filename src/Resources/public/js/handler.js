@@ -75,6 +75,10 @@ class ExtendedFileDriverHandler {
                 value = element.dataset.efdZoom;
                 break;
 
+            case 'broken':
+                value = (element.dataset.efdBroken == 0 ) ? false : true;
+                break;
+
             default:
                 value = null;
                 break;
@@ -136,7 +140,7 @@ class ExtendedFileDriverHandler {
                 }
             }
 
-            this.sendRequest(element, parameters)
+            this.sendRequest(element, parameters, this.getDataFrom(element, 'broken'));
         }
 
         return this;
@@ -145,8 +149,9 @@ class ExtendedFileDriverHandler {
     /**
      * @param {Element} element
      * @param {string} parameters
+     * @param {boolean} hiddenBrokenOnFailure
      */
-    sendRequest(element, parameters) {
+    sendRequest(element, parameters, hiddenBrokenOnFailure = false) {
         let self = this;
         let xhttp = new XMLHttpRequest();
 
@@ -160,8 +165,10 @@ class ExtendedFileDriverHandler {
                         element.setAttribute('width', element.dataset.efdWidth);
                         element.setAttribute('height', element.dataset.efdHeight);
                         element.style.display = "block";
-                    } else {
+                    } else if (hiddenBrokenOnFailure == false) {
                         self.setErrorElement(element, response.message);
+                    } else if(hiddenBrokenOnFailure == true) {
+                        element.style.display = "none";
                     }
                 } else {
                     console.error(xhttp.statusText);
