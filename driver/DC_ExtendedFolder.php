@@ -18,6 +18,8 @@
 
 namespace Contao;
 
+use Contao\CoreBundle\Exception\AccessDeniedException;
+use Contao\CoreBundle\Exception\ResponseException;
 use Contao\Image\ResizeConfiguration;
 use Imagine\Exception\RuntimeException;
 use Imagine\Gd\Imagine;
@@ -56,6 +58,12 @@ HTML;
      *
      * @param null|int $zoom   Null if not used or a integer between 0 and 100
      *
+     * @param bool     $prviewWidget
+     *
+     * @param int      $originWidth
+     *
+     * @param int      $originHeight
+     *
      * @return string The image with all data.
      */
     private function getAjaxImageTag(
@@ -63,7 +71,10 @@ HTML;
         $width = 400,
         $height = 50,
         $mode = ResizeConfiguration::MODE_BOX,
-        $zoom = null
+        $zoom = null,
+        $prviewWidget = false,
+        $originWidth = 0,
+        $originHeight = 0
     ) {
         $attributes = [
             'class="%s"'           => 'preview-image efd-ajax-image',
@@ -76,6 +87,18 @@ HTML;
 
         if ($zoom != null) {
             $attributes['data-efd-zoom="%s"'] = $zoom;
+        }
+
+        if ($prviewWidget != false) {
+            $attributes['data-efd-preview="%s"'] = 1;
+        }
+
+        if ($originHeight != 0) {
+            $attributes['data-efd-origin-width="%s"'] = $originWidth;
+        }
+
+        if ($originHeight != 0) {
+            $attributes['data-efd-origin-height="%s"'] = $originHeight;
         }
 
         return \Image::getHtml(
@@ -370,4 +393,403 @@ HTML;
 
         return $return;
     }
+
+    protected function row($strPalette = null)
+    {
+        $arrData = $GLOBALS['TL_DCA'][$this->strTable]['fields'][$this->strField];
+
+        // Check if the field is excluded
+        if ($arrData['exclude']) {
+            throw new AccessDeniedException('Field "' . $this->strTable . '.' . $this->strField . '" is excluded from being edited.');
+        }
+
+        $xlabel = '';
+
+        // Toggle line wrap (textarea)
+        if ($arrData['inputType'] == 'textarea' && !isset($arrData['eval']['rte'])) {
+            $xlabel .= ' ' . \Image::getHtml('wrap.svg', $GLOBALS['TL_LANG']['MSC']['wordWrap'],
+                    'title="' . \StringUtil::specialchars($GLOBALS['TL_LANG']['MSC']['wordWrap']) . '" class="toggleWrap" onclick="Backend.toggleWrap(\'ctrl_' . $this->strInputName . '\')"');
+        }
+
+        // Add the help wizard
+        if ($arrData['eval']['helpwizard']) {
+            $xlabel .= ' <a href="contao/help.php?table=' . $this->strTable . '&amp;field=' . $this->strField . '" title="' . \StringUtil::specialchars($GLOBALS['TL_LANG']['MSC']['helpWizard']) . '" onclick="Backend.openModalIframe({\'title\':\'' . \StringUtil::specialchars(str_replace("'",
+                    "\\'",
+                    $arrData['label'][0])) . '\',\'url\':this.href});return false">' . \Image::getHtml('about.svg',
+                    $GLOBALS['TL_LANG']['MSC']['helpWizard']) . '</a>';
+        }
+
+        // Add a custom xlabel
+        if (\is_array($arrData['xlabel'])) {
+            foreach ($arrData['xlabel'] as $callback) {
+                if (\is_array($callback)) {
+                    $this->import($callback[0]);
+                    $xlabel .= $this->{$callback[0]}->{$callback[1]}($this);
+                } elseif (\is_callable($callback)) {
+                    $xlabel .= $callback($this);
+                }
+            }
+        }
+
+        // Input field callback
+        if (\is_array($arrData['input_field_callback'])) {
+            $this->import($arrData['input_field_callback'][0]);
+
+            return $this->{$arrData['input_field_callback'][0]}->{$arrData['input_field_callback'][1]}($this, $xlabel);
+        }
+
+        if (\is_callable($arrData['input_field_callback'])) {
+            return $arrData['input_field_callback']($this, $xlabel);
+        }
+
+        /** @var Widget $strClass */
+        $strClass = $GLOBALS['BE_FFL'][$arrData['inputType']];
+
+        // Return if the widget class does not exists
+        if (!class_exists($strClass)) {
+            return '';
+        }
+
+        $arrData['eval']['required'] = false;
+
+        // Use strlen() here (see #3277)
+        if ($arrData['eval']['mandatory']) {
+            if (\is_array($this->varValue)) {
+                if (empty($this->varValue)) {
+                    $arrData['eval']['required'] = true;
+                }
+            } else {
+                if (!\strlen($this->varValue)) {
+                    $arrData['eval']['required'] = true;
+                }
+            }
+        }
+
+        // Convert insert tags in src attributes (see #5965)
+        if (isset($arrData['eval']['rte']) && strncmp($arrData['eval']['rte'], 'tiny', 4) === 0) {
+            $this->varValue = \StringUtil::insertTagToSrc($this->varValue);
+        }
+
+        // Use raw request if set globally but allow opting out setting useRawRequestData to false explicitly
+        $useRawGlobally = isset($GLOBALS['TL_DCA'][$this->strTable]['config']['useRawRequestData']) && $GLOBALS['TL_DCA'][$this->strTable]['config']['useRawRequestData'] === true;
+        $notRawForField = isset($arrData['eval']['useRawRequestData']) && $arrData['eval']['useRawRequestData'] === false;
+
+        if ($useRawGlobally && !$notRawForField) {
+            $arrData['eval']['useRawRequestData'] = true;
+        }
+
+        /** @var Widget $objWidget */
+        $objWidget = new $strClass($strClass::getAttributesFromDca($arrData, $this->strInputName, $this->varValue,
+            $this->strField, $this->strTable, $this));
+
+        $objWidget->xlabel        = $xlabel;
+        $objWidget->currentRecord = $this->intId;
+
+        // Validate the field
+        if (\Input::post('FORM_SUBMIT') == $this->strTable) {
+            $suffix = ($this instanceof DC_Folder ? md5($this->intId) : $this->intId);
+            $key    = (\Input::get('act') == 'editAll') ? 'FORM_FIELDS_' . $suffix : 'FORM_FIELDS';
+
+            // Calculate the current palette
+            $postPaletteFields = implode(',', \Input::post($key));
+            $postPaletteFields = array_unique(\StringUtil::trimsplit('[,;]', $postPaletteFields));
+
+            // Compile the palette if there is none
+            if ($strPalette === null) {
+                $newPaletteFields = \StringUtil::trimsplit('[,;]', $this->getPalette());
+            } else {
+                // Use the given palette ($strPalette is an array in editAll mode)
+                $newPaletteFields = \is_array($strPalette) ? $strPalette : \StringUtil::trimsplit('[,;]', $strPalette);
+
+                // Re-check the palette if the current field is a selector field
+                if (isset($GLOBALS['TL_DCA'][$this->strTable]['palettes']['__selector__']) && \in_array($this->strField,
+                        $GLOBALS['TL_DCA'][$this->strTable]['palettes']['__selector__'])) {
+                    // If the field value has changed, recompile the palette
+                    if ($this->varValue != \Input::post($this->strInputName)) {
+                        $newPaletteFields = \StringUtil::trimsplit('[,;]', $this->getPalette());
+                    }
+                }
+            }
+
+            // Adjust the names in editAll mode
+            if (\Input::get('act') == 'editAll') {
+                foreach ($newPaletteFields as $k => $v) {
+                    $newPaletteFields[$k] = $v . '_' . $suffix;
+                }
+
+                if ($this->User->isAdmin) {
+                    $newPaletteFields['pid']     = 'pid_' . $suffix;
+                    $newPaletteFields['sorting'] = 'sorting_' . $suffix;
+                }
+            }
+
+            $paletteFields = array_intersect($postPaletteFields, $newPaletteFields);
+
+            // Deprecated since Contao 4.2, to be removed in Contao 5.0
+            if (!isset($_POST[$this->strInputName]) && \in_array($this->strInputName, $paletteFields)) {
+                @trigger_error('Using FORM_FIELDS has been deprecated and will no longer work in Contao 5.0. Make sure to always submit at least an empty string in your widget.',
+                    E_USER_DEPRECATED);
+            }
+
+            // Validate and save the field
+            if (\in_array($this->strInputName, $paletteFields) || \Input::get('act') == 'overrideAll') {
+                $objWidget->validate();
+
+                if ($objWidget->hasErrors()) {
+                    // Skip mandatory fields on auto-submit (see #4077)
+                    if (\Input::post('SUBMIT_TYPE') != 'auto' || !$objWidget->mandatory || $objWidget->value != '') {
+                        $this->noReload = true;
+                    }
+                } elseif ($objWidget->submitInput()) {
+                    $varValue = $objWidget->value;
+
+                    // Sort array by key (fix for JavaScript wizards)
+                    if (\is_array($varValue)) {
+                        ksort($varValue);
+                        $varValue = serialize($varValue);
+                    }
+
+                    // Convert file paths in src attributes (see #5965)
+                    if ($varValue && isset($arrData['eval']['rte']) && strncmp($arrData['eval']['rte'], 'tiny',
+                            4) === 0) {
+                        $varValue = \StringUtil::srcToInsertTag($varValue);
+                    }
+
+                    // Save the current value
+                    try {
+                        $this->save($varValue);
+                    } catch (ResponseException $e) {
+                        throw $e;
+                    } catch (\Exception $e) {
+                        $this->noReload = true;
+                        $objWidget->addError($e->getMessage());
+                    }
+                }
+            }
+        }
+
+        $wizard       = '';
+        $strHelpClass = '';
+
+        // Date picker
+        if ($arrData['eval']['datepicker']) {
+            $rgxp   = $arrData['eval']['rgxp'];
+            $format = \Date::formatToJs(\Config::get($rgxp . 'Format'));
+
+            switch ($rgxp) {
+                case 'datim':
+                    $time = ",\n        timePicker: true";
+                    break;
+
+                case 'time':
+                    $time = ",\n        pickOnly: \"time\"";
+                    break;
+
+                default:
+                    $time = '';
+                    break;
+            }
+
+            $strOnSelect = '';
+
+            // Trigger the auto-submit function (see #8603)
+            if ($arrData['eval']['submitOnChange']) {
+                $strOnSelect = ",\n        onSelect: function() { Backend.autoSubmit(\"" . $this->strTable . "\"); }";
+            }
+
+            $wizard .= ' ' . \Image::getHtml('assets/datepicker/images/icon.svg', '',
+                    'title="' . \StringUtil::specialchars($GLOBALS['TL_LANG']['MSC']['datepicker']) . '" id="toggle_' . $objWidget->id . '" style="cursor:pointer"') . '
+  <script>
+    window.addEvent("domready", function() {
+      new Picker.Date($("ctrl_' . $objWidget->id . '"), {
+        draggable: false,
+        toggle: $("toggle_' . $objWidget->id . '"),
+        format: "' . $format . '",
+        positionOffset: {x:-211,y:-209}' . $time . ',
+        pickerClass: "datepicker_bootstrap",
+        useFadeInOut: !Browser.ie' . $strOnSelect . ',
+        startDay: ' . $GLOBALS['TL_LANG']['MSC']['weekOffset'] . ',
+        titleFormat: "' . $GLOBALS['TL_LANG']['MSC']['titleFormat'] . '"
+      });
+    });
+  </script>';
+        }
+
+        // Color picker
+        if ($arrData['eval']['colorpicker']) {
+            // Support single fields as well (see #5240)
+            $strKey = $arrData['eval']['multiple'] ? $this->strField . '_0' : $this->strField;
+
+            $wizard .= ' ' . \Image::getHtml('pickcolor.svg', $GLOBALS['TL_LANG']['MSC']['colorpicker'],
+                    'title="' . \StringUtil::specialchars($GLOBALS['TL_LANG']['MSC']['colorpicker']) . '" id="moo_' . $this->strField . '" style="cursor:pointer"') . '
+  <script>
+    window.addEvent("domready", function() {
+      var cl = $("ctrl_' . $strKey . '").value.hexToRgb(true) || [255, 0, 0];
+      new MooRainbow("moo_' . $this->strField . '", {
+        id: "ctrl_' . $strKey . '",
+        startColor: cl,
+        imgPath: "assets/colorpicker/images/",
+        onComplete: function(color) {
+          $("ctrl_' . $strKey . '").value = color.hex.replace("#", "");
+        }
+      });
+    });
+  </script>';
+        }
+
+        // DCA picker
+        if (isset($arrData['eval']['dcaPicker']) && (\is_array($arrData['eval']['dcaPicker']) || $arrData['eval']['dcaPicker'] === true)) {
+            $wizard .= \Backend::getDcaPickerWizard($arrData['eval']['dcaPicker'], $this->strTable, $this->strField,
+                $this->strInputName);
+        }
+
+        // Add a custom wizard
+        if (\is_array($arrData['wizard'])) {
+            foreach ($arrData['wizard'] as $callback) {
+                if (\is_array($callback)) {
+                    $this->import($callback[0]);
+                    $wizard .= $this->{$callback[0]}->{$callback[1]}($this);
+                } elseif (\is_callable($callback)) {
+                    $wizard .= $callback($this);
+                }
+            }
+        }
+
+        $arrClasses = \StringUtil::trimsplit(' ', (string)$arrData['eval']['tl_class']);
+
+        if ($wizard != '') {
+            $objWidget->wizard = $wizard;
+
+            if (!\in_array('wizard', $arrClasses)) {
+                $arrClasses[] = 'wizard';
+            }
+        } elseif (\in_array('wizard', $arrClasses)) {
+            unset($arrClasses[array_search('wizard', $arrClasses)]);
+        }
+
+        // Set correct form enctype
+        if ($objWidget instanceof \uploadable) {
+            $this->blnUploadable = true;
+        }
+
+        if ($arrData['inputType'] != 'password') {
+            $arrClasses[] = 'widget';
+        }
+
+        // Mark floated single checkboxes
+        if ($arrData['inputType'] == 'checkbox' && !$arrData['eval']['multiple'] && \in_array('w50', $arrClasses)) {
+            $arrClasses[] = 'cbx';
+        } elseif ($arrData['inputType'] == 'text' && $arrData['eval']['multiple'] && \in_array('wizard', $arrClasses)) {
+            $arrClasses[] = 'inline';
+        }
+
+        if (!empty($arrClasses)) {
+            $arrData['eval']['tl_class'] = implode(' ', array_unique($arrClasses));
+        }
+
+        $updateMode = '';
+
+        // Replace the textarea with an RTE instance
+        if (!empty($arrData['eval']['rte'])) {
+            list ($file, $type) = explode('|', $arrData['eval']['rte'], 2);
+
+            $fileBrowserTypes = array();
+            $pickerBuilder    = \System::getContainer()->get('contao.picker.builder');
+
+            foreach (array('file' => 'image', 'link' => 'file') as $context => $fileBrowserType) {
+                if ($pickerBuilder->supportsContext($context)) {
+                    $fileBrowserTypes[] = $fileBrowserType;
+                }
+            }
+
+            /** @var BackendTemplate|object $objTemplate */
+            $objTemplate                   = new \BackendTemplate('be_' . $file);
+            $objTemplate->selector         = 'ctrl_' . $this->strInputName;
+            $objTemplate->type             = $type;
+            $objTemplate->fileBrowserTypes = $fileBrowserTypes;
+            $objTemplate->source           = $this->strTable . '.' . $this->intId;
+
+            // Deprecated since Contao 4.0, to be removed in Contao 5.0
+            $objTemplate->language = \Backend::getTinyMceLanguage();
+
+            $updateMode = $objTemplate->parse();
+
+            unset($file, $type, $pickerBuilder, $fileBrowserTypes, $fileBrowserType);
+        } // Handle multi-select fields in "override all" mode
+        elseif (\Input::get('act') == 'overrideAll' && ($arrData['inputType'] == 'checkbox' || $arrData['inputType'] == 'checkboxWizard') && $arrData['eval']['multiple']) {
+            $updateMode = '
+</div>
+<div class="widget">
+  <fieldset class="tl_radio_container">
+  <legend>' . $GLOBALS['TL_LANG']['MSC']['updateMode'] . '</legend>
+    <input type="radio" name="' . $this->strInputName . '_update" id="opt_' . $this->strInputName . '_update_1" class="tl_radio" value="add" onfocus="Backend.getScrollOffset()"> <label for="opt_' . $this->strInputName . '_update_1">' . $GLOBALS['TL_LANG']['MSC']['updateAdd'] . '</label><br>
+    <input type="radio" name="' . $this->strInputName . '_update" id="opt_' . $this->strInputName . '_update_2" class="tl_radio" value="remove" onfocus="Backend.getScrollOffset()"> <label for="opt_' . $this->strInputName . '_update_2">' . $GLOBALS['TL_LANG']['MSC']['updateRemove'] . '</label><br>
+    <input type="radio" name="' . $this->strInputName . '_update" id="opt_' . $this->strInputName . '_update_0" class="tl_radio" value="replace" checked="checked" onfocus="Backend.getScrollOffset()"> <label for="opt_' . $this->strInputName . '_update_0">' . $GLOBALS['TL_LANG']['MSC']['updateReplace'] . '</label>
+  </fieldset>';
+        }
+
+        $strPreview = '';
+
+        // Show a preview image (see #4948)
+        if ($this->strTable == 'tl_files' && $this->strField == 'name' && $this->objActiveRecord !== null && $this->objActiveRecord->type == 'file') {
+            $objFile = new \File($this->objActiveRecord->path);
+
+            if ($objFile->isImage) {
+                $blnCanResize = true;
+
+                // Check the maximum width and height if the GDlib is used to resize images
+                if (!$objFile->isSvgImage && \System::getContainer()->get('contao.image.imagine') instanceof Imagine) {
+                    $blnCanResize = $objFile->height <= \Config::get('gdMaxImgHeight') && $objFile->width <= \Config::get('gdMaxImgWidth');
+                }
+
+                $image = \Image::getPath('placeholder.svg');
+
+                if ($blnCanResize) {
+                    if ($objFile->width > 699 || $objFile->height > 524 || !$objFile->width || !$objFile->height) {
+                        $strPreview = $this->getAjaxImageTag(
+                            $objFile->path,
+                            699,
+                            524,
+                            ResizeConfiguration::MODE_BOX,
+                            null,
+                            true,
+                            $objFile->viewWidth,
+                            $objFile->viewHeight
+                        );
+                        if (\Config::get('showHelp')) {
+                            $strPreview .= '<p class="tl_help tl_tip">' . $GLOBALS['TL_LANG'][$this->strTable]['edit_preview_help'] . '</p>';
+                        }
+                        $strPreview = '<div class="widget">' . $strPreview . '</div>';
+                    } else {
+                        $image = $objFile->path;
+
+                        $objImage = new \File($image);
+                        $ctrl     = 'ctrl_preview_' . substr(md5($image), 0, 8);
+
+                        $strPreview = '
+<div id="' . $ctrl . '" class="tl_edit_preview" data-original-width="' . $objFile->viewWidth . '" data-original-height="' . $objFile->viewHeight . '">
+  <img src="' . $objImage->dataUri . '" width="' . $objImage->width . '" height="' . $objImage->height . '" alt="">
+</div>';
+
+                        // Add the script to mark the important part
+                        if (basename($image) !== 'placeholder.svg') {
+                            $strPreview .= '<script>Backend.editPreviewWizard($(\'' . $ctrl . '\'));</script>';
+
+                            if (\Config::get('showHelp')) {
+                                $strPreview .= '<p class="tl_help tl_tip">' . $GLOBALS['TL_LANG'][$this->strTable]['edit_preview_help'] . '</p>';
+                            }
+
+                            $strPreview = '<div class="widget">' . $strPreview . '</div>';
+                        }
+                    }
+                }
+            }
+        }
+
+        return $strPreview . '
+<div' . ($arrData['eval']['tl_class'] ? ' class="' . trim($arrData['eval']['tl_class']) . '"' : '') . '>' . $objWidget->parse() . $updateMode . (!$objWidget->hasErrors() ? $this->help($strHelpClass) : '') . '
+</div>';
+    }
+
+
 }
