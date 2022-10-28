@@ -23,7 +23,7 @@ namespace Nekowonderland\ExtendedFolderDriver\Command;
 use Contao\Config;
 use Contao\CoreBundle\Exception\ResponseException;
 use Contao\CoreBundle\Framework\ContaoFramework;
-use Contao\CoreBundle\Image\ImageFactory;
+use Contao\CoreBundle\Image\ImageFactoryInterface;
 use Contao\File;
 use Contao\Image\ResizeConfiguration;
 use Contao\StringUtil;
@@ -108,7 +108,7 @@ class CreateImages extends Command
     public function __construct(
         LoggerInterface $logger,
         ContaoFramework $framework,
-        ImageFactory $imageFactory
+        ImageFactoryInterface $imageFactory
     ) {
         $this->logger       = $logger;
         $this->imageFactory = $imageFactory;

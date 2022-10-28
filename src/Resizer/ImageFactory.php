@@ -6,6 +6,7 @@ namespace Nekowonderland\ExtendedFolderDriver\Resizer;
 use Contao\CoreBundle\Framework\ContaoFrameworkInterface;
 use Contao\CoreBundle\Image\ImageFactoryInterface;
 use Contao\FilesModel;
+use Contao\Image\DeferredResizerInterface;
 use Contao\Image\Image;
 use Contao\Image\ImageInterface;
 use Contao\Image\ImportantPart;
@@ -14,10 +15,12 @@ use Contao\Image\ResizeConfigurationInterface;
 use Contao\Image\ResizeOptions;
 use Contao\Image\ResizerInterface;
 use Contao\ImageSizeModel;
+use Contao\StringUtil;
 use Imagine\Image\Box;
 use Imagine\Image\ImagineInterface;
 use Imagine\Image\Point;
 use Symfony\Component\Filesystem\Filesystem;
+use Symfony\Component\Filesystem\Path;
 
 /**
  * Creates Image objects.
@@ -101,12 +104,17 @@ class ImageFactory implements ImageFactoryInterface
     /**
      * {@inheritdoc}
      */
-    public function create($path, $size = null, $targetPath = null)
+    public function create($path, $size = null, $options = null): ImageInterface
     {
+        if (null !== $options && !\is_string($options) && !$options instanceof ResizeOptions) {
+            throw new \InvalidArgumentException('Options must be of type null, string or ' . ResizeOptions::class);
+        }
+
         if ($path instanceof ImageInterface) {
             $image = $path;
         } else {
-            $fileExtension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+            $path          = (string)$path;
+            $fileExtension = Path::getExtension($path, true);
 
             if (\in_array($fileExtension, ['svg', 'svgz'], true)) {
                 $imagine = $this->imagineSvg;
@@ -119,17 +127,34 @@ class ImageFactory implements ImageFactoryInterface
                     $fileExtension));
             }
 
-            $image = new Image((string)$path, $imagine, $this->filesystem);
+            if (!Path::isAbsolute($path)) {
+                throw new \InvalidArgumentException(sprintf('Image path "%s" must be absolute', $path));
+            }
+
+            if (
+                $this->resizer instanceof DeferredResizerInterface
+                && !$this->filesystem->exists($path)
+                && $deferredImage = $this->resizer->getDeferredImage($path, $imagine)
+            ) {
+                $image = $deferredImage;
+            } else {
+                $image = new Image($path, $imagine, $this->filesystem);
+            }
         }
 
-        if ($size instanceof ResizeConfigurationInterface) {
+        $targetPath = $options instanceof ResizeOptions ? $options->getTargetPath() : $options;
+
+        // Support arrays in a serialized form
+        $size = StringUtil::deserialize($size);
+
+        if ($size instanceof ResizeConfiguration) {
             $resizeConfig  = $size;
             $importantPart = null;
         } else {
-            list($resizeConfig, $importantPart) = $this->createConfig($size, $image);
+            [$resizeConfig, $importantPart, $options] = $this->createConfig($size, $image);
         }
 
-        if (!\is_object($path) || !($path instanceof ImageInterface)) {
+        if (!\is_object($path) || !$path instanceof ImageInterface) {
             if (null === $importantPart) {
                 $importantPart = $this->createImportantPart($image);
             }
@@ -137,18 +162,29 @@ class ImageFactory implements ImageFactoryInterface
             $image->setImportantPart($importantPart);
         }
 
-        if (null === $targetPath && $resizeConfig->isEmpty()) {
+        if (null === $options && null === $targetPath && null === $size) {
             return $image;
         }
 
-        return $this->resizer->resize(
-            $image,
-            $resizeConfig,
-            (new ResizeOptions())
-                ->setImagineOptions($this->imagineOptions)
-                ->setTargetPath($targetPath)
-                ->setBypassCache($this->bypassCache)
-        );
+        if (!$options instanceof ResizeOptions) {
+            $options = new ResizeOptions();
+
+            if (!$size instanceof ResizeConfiguration && $resizeConfig->isEmpty()) {
+                $options->setSkipIfDimensionsMatch(true);
+            }
+        }
+
+        if (null !== $targetPath) {
+            $options->setTargetPath($targetPath);
+        }
+
+        if (!$options->getImagineOptions()) {
+            $options->setImagineOptions($this->imagineOptions);
+        }
+
+        $options->setBypassCache($options->getBypassCache() || $this->bypassCache);
+
+        return $this->resizer->resize($image, $resizeConfig, $options);
     }
 
     /**
@@ -203,43 +239,51 @@ class ImageFactory implements ImageFactoryInterface
             $size = [0, 0, $size];
         }
 
-        $config = new ResizeConfiguration();
+        $config  = new ResizeConfiguration();
+        $options = new ResizeOptions();
+        if (isset($size[2])) {
+            // Database record
+            if (is_numeric($size[2])) {
+                $imageModel = $this->framework->getAdapter(ImageSizeModel::class);
 
-        if (isset($size[2]) && is_numeric($size[2])) {
-            /** @var ImageSizeModel $imageModel */
-            $imageModel = $this->framework->getAdapter(ImageSizeModel::class);
-            $imageSize  = $imageModel->findByPk($size[2]);
+                if (null !== ($imageSize = $imageModel->findByPk($size[2]))) {
+                    $this->enhanceResizeConfig($config, $imageSize->row());
+                    $options->setSkipIfDimensionsMatch((bool)$imageSize->skipIfDimensionsMatch);
+                }
 
-            if (null !== $imageSize) {
-                $config
-                    ->setWidth($imageSize->width)
-                    ->setHeight($imageSize->height)
-                    ->setMode($imageSize->resizeMode)
-                    ->setZoomLevel($imageSize->zoom);
+                return [$config, null, $options];
             }
 
-            return [$config, null];
+            // Predefined sizes
+            if (isset($this->predefinedSizes[$size[2]])) {
+                $this->enhanceResizeConfig($config, $this->predefinedSizes[$size[2]]);
+                $options->setSkipIfDimensionsMatch($this->predefinedSizes[$size[2]]['skipIfDimensionsMatch'] ?? false);
+
+                return [$config, null, $options];
+            }
         }
 
         if (!empty($size[0])) {
-            $config->setWidth($size[0]);
+            $config->setWidth((int)$size[0]);
         }
 
         if (!empty($size[1])) {
-            $config->setHeight($size[1]);
+            $config->setHeight((int)$size[1]);
         }
 
-        if (!isset($size[2]) || 1 !== substr_count($size[2], '_')) {
+        if (!isset($size[2])
+            || (\is_string($size[2]) && 1 !== substr_count($size[2], '_'))
+        ) {
             if (!empty($size[2])) {
                 $config->setMode($size[2]);
             }
 
-            return [$config, null];
+            return [$config, null, null];
         }
 
-        $config->setMode(ResizeConfigurationInterface::MODE_CROP);
+        $config->setMode(ResizeConfiguration::MODE_CROP);
 
-        return [$config, $this->getImportantPartFromLegacyMode($image, $size[2])];
+        return [$config, $this->getImportantPartFromLegacyMode($image, $size[2]), null];
     }
 
     /**
