@@ -6,8 +6,10 @@ use Contao\Image\Image;
 use Contao\Image\ImageInterface;
 use Contao\Image\ResizeCalculator;
 use Contao\Image\ResizeCalculatorInterface;
+use Contao\Image\ResizeConfiguration;
 use Contao\Image\ResizeConfigurationInterface;
 use Contao\Image\ResizeCoordinatesInterface;
+use Contao\Image\ResizeOptions;
 use Contao\Image\ResizeOptionsInterface;
 use Contao\Image\ResizerInterface;
 use Imagine\Exception\RuntimeException as ImagineRuntimeException;
@@ -55,7 +57,7 @@ class Resizer implements ResizerInterface
     /**
      * {@inheritdoc}
      */
-    public function resize(ImageInterface $image, ResizeConfigurationInterface $config, ResizeOptionsInterface $options)
+    public function resize(ImageInterface $image, ResizeConfiguration $config, ResizeOptions $options): ImageInterface
     {
         if ($config->isEmpty() || $image->getDimensions()->isUndefined()) {
             $image = $this->createImage($image, $image->getPath());

@@ -23,10 +23,10 @@
   },
   "require": {
     "php": "^7.4 || ^8.0",
-    "contao/core-bundle": "^4.4.8"
+    "contao/core-bundle": "^4.13"
   },
   "require-dev": {
-    "contao/manager-bundle": "~4.4"
+    "contao/manager-bundle": "^4.13"
   },
   "autoload": {
     "psr-4": {
