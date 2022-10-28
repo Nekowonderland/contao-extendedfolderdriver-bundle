@@ -48,8 +48,8 @@ class CreateImages extends Command
     /**
      * Const values.
      */
-    const MODE_CROP         = 'crop';
-    const MODE_BOX          = 'box';
+    const MODE_CROP = 'crop';
+    const MODE_BOX = 'box';
     const MODE_PROPORTIONAL = 'proportional';
 
     /**
@@ -161,44 +161,44 @@ class CreateImages extends Command
         );
 
         $this->setDescription('Create for a folder of images all images in he given size.')
-             ->setHelp('This command allows you to create a user...')
-             ->addOption
-             (
-                 'path',
-                 'p',
-                 InputOption::VALUE_OPTIONAL,
-                 'The path with should be searched for images or the direct path of the file.'
-             )
-             ->addOption(
-                 'width',
-                 'w',
-                 InputOption::VALUE_REQUIRED,
-                 'The width in pixel.'
-             )
-             ->addOption(
-                 'height',
-                 'he',
-                 InputOption::VALUE_REQUIRED,
-                 'The height in pixel.'
-             )
-             ->addOption(
-                 'zoom',
-                 'z',
-                 InputOption::VALUE_OPTIONAL,
-                 'Zoom level must be between 0 and 100.'
-             )
-             ->addOption(
-                 'mode',
-                 'm',
-                 InputOption::VALUE_OPTIONAL,
-                 $helpMode
-             )
-             ->addOption(
-                 'filetypes',
-                 'ft',
-                 InputOption::VALUE_OPTIONAL,
-                 'Allowed filetype. Use a comma seperated list.'
-             );
+            ->setHelp('This command allows you to create a user...')
+            ->addOption
+            (
+                'path',
+                'p',
+                InputOption::VALUE_OPTIONAL,
+                'The path with should be searched for images or the direct path of the file.'
+            )
+            ->addOption(
+                'width',
+                'w',
+                InputOption::VALUE_REQUIRED,
+                'The width in pixel.'
+            )
+            ->addOption(
+                'height',
+                'he',
+                InputOption::VALUE_REQUIRED,
+                'The height in pixel.'
+            )
+            ->addOption(
+                'zoom',
+                'z',
+                InputOption::VALUE_OPTIONAL,
+                'Zoom level must be between 0 and 100.'
+            )
+            ->addOption(
+                'mode',
+                'm',
+                InputOption::VALUE_OPTIONAL,
+                $helpMode
+            )
+            ->addOption(
+                'filetypes',
+                'ft',
+                InputOption::VALUE_OPTIONAL,
+                'Allowed filetype. Use a comma seperated list.'
+            );
     }
 
     /**
@@ -289,8 +289,8 @@ class CreateImages extends Command
         $mode            = $input->getOption('mode');
         $zoom            = $input->getOption('zoom');
         $resizeContainer
-            ->setWidth($input->getOption('width'))
-            ->setHeight($input->getOption('height'));
+            ->setWidth((int)$input->getOption('width'))
+            ->setHeight((int)$input->getOption('height'));
 
         if (!empty($mode)) {
             $resizeContainer->setMode($mode);
@@ -299,7 +299,7 @@ class CreateImages extends Command
         }
 
         if (!empty($zoom)) {
-            $resizeContainer->setZoomLevel($zoom);
+            $resizeContainer->setZoomLevel((int)$zoom);
         }
 
         return $resizeContainer;

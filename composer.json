@@ -22,12 +22,11 @@
     "source": "https://github.com/Nekowonderland/contao-extendedfolderdriver-bundle"
   },
   "require": {
-    "php": "^7.2",
-    "contao/core-bundle": "^4.4.8"
+    "php": "^7.4 || ^8.0",
+    "contao/core-bundle": "^4.13"
   },
   "require-dev": {
-    "phpcq/all-tasks": "~1.2",
-    "contao/manager-bundle": "~4.4"
+    "contao/manager-bundle": "^4.13"
   },
   "autoload": {
     "psr-4": {

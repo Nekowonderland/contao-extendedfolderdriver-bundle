@@ -208,8 +208,8 @@ class Image
         $mode            = $request->get('mode');
         $zoom            = $request->get('zoom');
         $resizeContainer
-            ->setWidth($request->get('width'))
-            ->setHeight($request->get('height'));
+            ->setWidth((int)$request->get('width'))
+            ->setHeight((int)$request->get('height'));
 
         if (!empty($mode)) {
             $resizeContainer->setMode($mode);
@@ -218,7 +218,7 @@ class Image
         }
 
         if (!empty($zoom)) {
-            $resizeContainer->setZoomLevel($zoom);
+            $resizeContainer->setZoomLevel((int)$zoom);
         }
 
         return $resizeContainer;
